@@ -1,0 +1,19 @@
+{
+  "name": "tug-of-war-backend",
+  "version": "1.0.0",
+  "description": "Backend (Node.js + Express + Socket.io) for the Online Tug-of-War (\u0d9c\u0dd9\u0dba\u0dd2\u0dcf) game. Served separately from the frontend, with CORS enabled.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "license": "MIT"
+}

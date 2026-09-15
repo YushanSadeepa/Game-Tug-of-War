@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🏆 ඔන්ලයින් කඹ ඇදීමේ තරගය</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="app-header">
+      <h1 class="game-title">🏆 ඔන්ලයින් කඹ ඇදීමේ තරගය</h1>
+      <div id="connectionStatus" class="connection-status offline">
+        <span class="dot"></span>
+        <span id="connectionStatusText">සම්බන්ධ වෙමින්...</span>
+      </div>
+    </header>
+
+    <!-- ===================== STATUS BAR ===================== -->
+    <section class="status-bar">
+      <div id="roleBadge" class="role-badge role-spectator">
+        <span id="roleBadgeIcon">👀</span>
+        <span id="roleBadgeText">ඔබගේ භූමිකාව සොයමින්...</span>
+      </div>
+
+      <div class="score-panel">
+        <div class="score-chip red-chip">
+          <span class="score-label">🔴 රතු</span>
+          <span id="scoreRed" class="score-value">0</span>
+        </div>
+        <div class="score-vs">VS</div>
+        <div class="score-chip blue-chip">
+          <span class="score-label">නිල් 🔵</span>
+          <span id="scoreBlue" class="score-value">0</span>
+        </div>
+      </div>
+
+      <div class="spectator-panel">
+        <span>👀 නරඹන්නන්:</span>
+        <span id="spectatorCount">0</span>
+      </div>
+    </section>
+
+    <!-- ===================== GAME STAGE ===================== -->
+    <main class="game-stage">
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Waiting for players overlay -->
+        <div id="waitingOverlay" class="overlay hidden">
+          <div class="overlay-card">
+            <div class="spinner"></div>
+            <p class="overlay-title">දෙවන ක්‍රීඩකයා එනතුරු රැඳී සිටින්න...</p>
+            <p class="overlay-sub">ක්‍රීඩකයන් දෙදෙනෙකු අවශ්‍යයි ක්‍රීඩාව ආරම්භ කිරීමට</p>
+          </div>
+        </div>
+
+        <!-- Countdown overlay -->
+        <div id="countdownOverlay" class="overlay hidden">
+          <div class="overlay-card countdown-card">
+            <p class="overlay-title">සූදානම් වෙන්න!</p>
+            <div id="countdownNumber" class="countdown-number">3</div>
+          </div>
+        </div>
+
+        <!-- Win / Game over overlay -->
+        <div id="winOverlay" class="overlay hidden">
+          <div class="overlay-card win-card">
+            <p id="winMessage" class="win-message">🔴 රතු කණ්ඩායම ජයග්‍රහණය කළා!</p>
+            <button id="playAgainBtn" class="play-again-btn">🔁 නැවත සෙල්ලම් කරන්න</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rope tension meter -->
+      <div class="tension-meter">
+        <div class="tension-label red-label">රතු</div>
+        <div class="tension-track">
+          <div id="tensionFill" class="tension-fill"></div>
+          <div class="tension-center-line"></div>
+        </div>
+        <div class="tension-label blue-label">නිල්</div>
+      </div>
+    </main>
+
+    <!-- ===================== CONTROLS ===================== -->
+    <section class="controls">
+      <button id="pullBtn" class="pull-btn" disabled>
+        <span class="pull-btn-icon">💪</span>
+        <span class="pull-btn-text">ඇදපන් ! (Spacebar / Tap)</span>
+      </button>
+      <p class="controls-hint">Spacebar හෝ ස්ක්‍රීනය ස්පර්ශ කර වේගයෙන් කඹය අදින්න!</p>
+    </section>
+
+    <footer class="app-footer">
+      <p>Frontend served independently • Connects to backend via Socket.io</p>
+    </footer>
+
+  </div>
+
+  <!-- Socket.io client loaded from CDN, since the frontend is a fully
+       separate static app and no longer served by the backend. -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="game.js"></script>
+</body>
+</html>
