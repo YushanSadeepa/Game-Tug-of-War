@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>🏆 ඔන්ලයින් කඹ ඇදීමේ තරගය</title>
+<title>ඔන්ලයින් කඹ ඇදීමේ තරගය</title>
+<link rel="icon" type="image/png" href="logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -11,7 +12,25 @@
 </head>
 <body>
 
-  <div class="app-shell">
+  <!-- ===================== SPLASH / LOADING SCREEN ===================== -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-glow"></div>
+    <div class="splash-content">
+      <div class="splash-logo-wrapper">
+        <div class="splash-logo-ring"></div>
+        <img src="logo.png" alt="Tug of War Logo" class="splash-logo" id="splashLogo" />
+        <div class="splash-shine" aria-hidden="true"></div>
+      </div>
+      <h2 class="splash-title">🏆 ඔන්ලයින් කඹ ඇදීමේ තරගය</h2>
+      <p class="splash-sub">පොඩ්ඩක් හිටපන් කඹේ ගේනකන්...</p>
+      <div class="splash-loading-track">
+        <div id="splashLoadingFill" class="splash-loading-fill"></div>
+      </div>
+      <p id="splashPercent" class="splash-percent">0%</p>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
 
     <!-- ===================== HEADER ===================== -->
     <header class="app-header">
@@ -57,14 +76,14 @@
           <div class="overlay-card">
             <div class="spinner"></div>
             <p class="overlay-title">දෙවන ක්‍රීඩකයා එනතුරු රැඳී සිටින්න...</p>
-            <p class="overlay-sub">ක්‍රීඩකයන් දෙදෙනෙකු අවශ්‍යයි ක්‍රීඩාව ආරම්භ කිරීමට</p>
+            <p class="overlay-sub">තව එකෙක් සෙට් කරගනින් මචන් ගේමට..</p>
           </div>
         </div>
 
         <!-- Countdown overlay -->
         <div id="countdownOverlay" class="overlay hidden">
           <div class="overlay-card countdown-card">
-            <p class="overlay-title">සූදානම් වෙන්න!</p>
+            <p class="overlay-title">අදින්නයි යන්නේ...!</p>
             <div id="countdownNumber" class="countdown-number">3</div>
           </div>
         </div>
@@ -73,6 +92,7 @@
         <div id="winOverlay" class="overlay hidden">
           <div class="overlay-card win-card">
             <p id="winMessage" class="win-message">🔴 රතු කණ්ඩායම ජයග්‍රහණය කළා!</p>
+            <p id="winSubMessage" class="win-sub-message"></p>
             <button id="playAgainBtn" class="play-again-btn">🔁 නැවත සෙල්ලම් කරන්න</button>
           </div>
         </div>
@@ -95,11 +115,11 @@
         <span class="pull-btn-icon">💪</span>
         <span class="pull-btn-text">ඇදපන් ! (Spacebar / Tap)</span>
       </button>
-      <p class="controls-hint">Spacebar හෝ ස්ක්‍රීනය ස්පර්ශ කර වේගයෙන් කඹය අදින්න!</p>
+      <p class="controls-hint">Spacebar හෝ ස්ක්‍රීනය වේගයෙන් ස්පර්ශ කර කඹය අදින්න!</p>
     </section>
 
     <footer class="app-footer">
-      <p>Frontend served independently • Connects to backend via Socket.io</p>
+      <p>Developed by Yushan Sadeepa • Ceyron Interactive</p>
     </footer>
 
   </div>
@@ -107,6 +127,7 @@
   <!-- Socket.io client loaded from CDN, since the frontend is a fully
        separate static app and no longer served by the backend. -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="splash.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -44,7 +44,15 @@
   const countdownNumberEl = document.getElementById('countdownNumber');
   const winOverlay = document.getElementById('winOverlay');
   const winMessageEl = document.getElementById('winMessage');
+  const winSubMessageEl = document.getElementById('winSubMessage');
   const playAgainBtn = document.getElementById('playAgainBtn');
+
+  // Personalized taunt lines shown to the PLAYER (not spectators) once a
+  // round ends — one for whoever just won, one for whoever just lost.
+  const WINNER_TAUNT_MESSAGE =
+    'දින්නා මචන්.. දින්නා මචන්.. හෙමිහිට ස්පේස් බාර් එක හොඳ තත්වෙන් තියනවද බලපන්..';
+  const LOSER_TAUNT_MESSAGE =
+    'පරාදයි මචන්.. දන්නැද්ද ඔය පොඩ්ඩ පොඩ්ඩ ඩාම් වෙනවා ඩූම් වෙනවා';
 
   const pullBtn = document.getElementById('pullBtn');
   const tensionFillEl = document.getElementById('tensionFill');
@@ -52,15 +60,16 @@
   // ------------------------------------------------------------------
   // NETWORK STATE
   // ------------------------------------------------------------------
-  // Explicitly point the Socket.io client at the backend's URL, with
-  // reconnection enabled since the frontend and backend now run as
-  // independent processes/origins.
-  const socket = io(BACKEND_URL, {
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-  });
+  // IMPORTANT: the socket is intentionally NOT created here. Connecting to
+  // the backend is what makes this client eligible to be assigned Red/Blue
+  // and is what lets the server's "both players connected" check trigger
+  // the 3-2-1 countdown. If we connected immediately on page load, the
+  // server could start (or even finish) that countdown while the splash
+  // screen is still covering the canvas. Instead, `socket` stays null until
+  // `connectToBackend()` is called, which only happens once the splash
+  // screen has fully finished (see the "SPLASH SYNCHRONIZATION" section
+  // near the bottom of this file).
+  let socket = null;
 
   let myRole = 'spectator'; // 'red' | 'blue' | 'spectator'
   let gameState = 'waiting'; // 'waiting' | 'countdown' | 'playing' | 'finished'
@@ -76,62 +85,99 @@
   let localPulse = { red: 0, blue: 0 };
 
   // ------------------------------------------------------------------
-  // SOCKET EVENT HANDLERS
+  // SOCKET CONNECTION + EVENT HANDLERS
   // ------------------------------------------------------------------
-  socket.on('connect', () => {
-    connectionStatusEl.classList.add('online');
-    connectionStatusEl.classList.remove('offline');
-    connectionStatusTextEl.textContent = 'සම්බන්ධ විය ✔ (' + BACKEND_URL + ')';
-  });
+  // Wrapped in a function so it can be deferred until the splash screen
+  // signals it is completely done (see bottom of file). Calling this
+  // more than once is a no-op guard against double-connecting.
+  function connectToBackend() {
+    if (socket) return;
 
-  socket.on('disconnect', () => {
-    connectionStatusEl.classList.remove('online');
-    connectionStatusEl.classList.add('offline');
-    connectionStatusTextEl.textContent = 'සම්බන්ධතාවය කැඩී ඇත — නැවත සම්බන්ධ වෙමින්...';
-    pullBtn.disabled = true;
-  });
+    // Explicitly point the Socket.io client at the backend's URL, with
+    // reconnection enabled since the frontend and backend now run as
+    // independent processes/origins.
+    socket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+    });
 
-  socket.on('connect_error', () => {
-    connectionStatusEl.classList.remove('online');
-    connectionStatusEl.classList.add('offline');
-    connectionStatusTextEl.textContent = 'Backend server (' + BACKEND_URL + ') වෙත සම්බන්ධ විය නොහැක';
-    pullBtn.disabled = true;
-  });
+    socket.on('connect', () => {
+      connectionStatusEl.classList.add('online');
+      connectionStatusEl.classList.remove('offline');
+      connectionStatusTextEl.textContent = 'සම්බන්ධ විය ✔ (' + BACKEND_URL + ')';
+    });
 
-  socket.on('role', (data) => {
-    myRole = data.role;
-    updateRoleBadge();
-    updatePullButtonEnabled();
-  });
+    socket.on('disconnect', () => {
+      connectionStatusEl.classList.remove('online');
+      connectionStatusEl.classList.add('offline');
+      connectionStatusTextEl.textContent = 'සම්බන්ධතාවය කැඩී ඇත — නැවත සම්බන්ධ වෙමින්...';
+      pullBtn.disabled = true;
+    });
 
-  socket.on('state', (data) => {
-    gameState = data.state;
-    serverPosition = data.position;
-    winner = data.winner;
-    wins = data.wins;
-    pullingFlags = data.pulling;
+    socket.on('connect_error', () => {
+      connectionStatusEl.classList.remove('online');
+      connectionStatusEl.classList.add('offline');
+      connectionStatusTextEl.textContent = 'Backend server (' + BACKEND_URL + ') වෙත සම්බන්ධ විය නොහැක';
+      pullBtn.disabled = true;
+    });
 
-    scoreRedEl.textContent = wins.red;
-    scoreBlueEl.textContent = wins.blue;
-    spectatorCountEl.textContent = data.spectatorCount;
+    socket.on('role', (data) => {
+      myRole = data.role;
+      updateRoleBadge();
+      updatePullButtonEnabled();
+    });
 
-    updateOverlays(data);
-    updatePullButtonEnabled();
+    socket.on('state', (data) => {
+      gameState = data.state;
+      serverPosition = data.position;
+      winner = data.winner;
+      wins = data.wins;
+      pullingFlags = data.pulling;
 
-    if (data.state === 'countdown' && data.countdownValue !== lastCountdownValue) {
-      lastCountdownValue = data.countdownValue;
-      countdownNumberEl.textContent = data.countdownValue > 0 ? data.countdownValue : 'ආරම්භය!';
-      playCountdownBeep(data.countdownValue > 0);
-    }
+      scoreRedEl.textContent = wins.red;
+      scoreBlueEl.textContent = wins.blue;
+      spectatorCountEl.textContent = data.spectatorCount;
 
-    if (data.state === 'finished' && winner) {
-      winMessageEl.textContent =
-        winner === 'red'
-          ? '🔴 රතු කණ්ඩායම ජයග්‍රහණය කළා!'
-          : '🔵 නිල් කණ්ඩායම ජයග්‍රහණය කළා!';
-      playCheerSound();
-    }
-  });
+      updateOverlays(data);
+      updatePullButtonEnabled();
+
+      if (data.state === 'countdown' && data.countdownValue !== lastCountdownValue) {
+        lastCountdownValue = data.countdownValue;
+        countdownNumberEl.textContent = data.countdownValue > 0 ? data.countdownValue : 'ආරම්භය!';
+        playCountdownBeep(data.countdownValue > 0);
+      }
+
+      if (data.state === 'finished' && winner) {
+        winMessageEl.textContent =
+          winner === 'red'
+            ? '🔴 රතු කණ්ඩායම ජයග්‍රහණය කළා!'
+            : '🔵 නිල් කණ්ඩායම ජයග්‍රහණය කළා!';
+
+        // Personalized taunt: only shown to the two actual players, based on
+        // whether THEY personally won or lost this round. Spectators get no
+        // taunt line, since neither message applies to them.
+        winSubMessageEl.classList.remove('taunt-win', 'taunt-lose');
+        if (myRole === winner) {
+          winSubMessageEl.textContent = WINNER_TAUNT_MESSAGE;
+          winSubMessageEl.classList.add('taunt-win');
+        } else if (myRole === 'red' || myRole === 'blue') {
+          winSubMessageEl.textContent = LOSER_TAUNT_MESSAGE;
+          winSubMessageEl.classList.add('taunt-lose');
+        } else {
+          winSubMessageEl.textContent = '';
+        }
+
+        playCheerSound();
+      } else if (data.state !== 'finished') {
+        // Clear the taunt as soon as we leave the "finished" state so it
+        // doesn't flash stale text before the next win overlay appears.
+        winSubMessageEl.textContent = '';
+        winSubMessageEl.classList.remove('taunt-win', 'taunt-lose');
+      }
+    });
+  }
 
   function updateRoleBadge() {
     roleBadgeEl.classList.remove('role-red', 'role-blue', 'role-spectator');
@@ -165,7 +211,7 @@
   // PULL INPUT (button + spacebar) with local instant feedback
   // ------------------------------------------------------------------
   function attemptPull() {
-    if (pullBtn.disabled) return;
+    if (pullBtn.disabled || !socket) return;
     ensureAudioContext();
     socket.emit('pull', { role: myRole });
     localPulse[myRole] = 1;
@@ -186,6 +232,7 @@
 
   playAgainBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    if (!socket) return;
     ensureAudioContext();
     socket.emit('restart');
   });
@@ -723,4 +770,43 @@
   ['pointerdown', 'keydown'].forEach((evt) => {
     window.addEventListener(evt, ensureAudioContext, { once: true });
   });
+
+  // ==================================================================
+  //  SPLASH SYNCHRONIZATION
+  // ==================================================================
+  // `splash.js` runs before this script and owns the splash screen's
+  // timing. When it finishes (loading bar reaches 100% AND the fade-out
+  // transition has completed, i.e. the splash element is fully gone), it:
+  //   1. sets `window.__splashComplete = true`, and
+  //   2. dispatches a `splash:complete` CustomEvent on `window`.
+  //
+  // We only call `connectToBackend()` once that has happened, so the
+  // socket connection — and therefore the server's "both players
+  // connected -> start 3-2-1 countdown" logic — cannot begin while the
+  // splash screen is still visible or mid-transition.
+  function beginGameSession() {
+    connectToBackend();
+  }
+
+  if (window.__splashComplete) {
+    // Edge case: splash.js already finished (e.g. no #splashScreen element
+    // was found, so it completed synchronously) before this script ran.
+    beginGameSession();
+  } else {
+    window.addEventListener('splash:complete', beginGameSession, { once: true });
+  }
+
+  // Safety net: if splash.js fails to load or throws before it can ever
+  // dispatch 'splash:complete' (e.g. blocked script, typo'd <script> tag),
+  // don't strand the player on a game that can never connect. This timeout
+  // is well beyond the normal ~3.1s splash lifetime, so it never fires in
+  // the normal flow.
+  setTimeout(() => {
+    if (!socket) {
+      console.warn(
+        '[game.js] "splash:complete" was not received in time — starting the backend connection anyway.'
+      );
+      beginGameSession();
+    }
+  }, 8000);
 })();
